@@ -22,8 +22,6 @@ T = TypeVar("T")
 
 
 class ListBox(Widget):
-    added = signal(int, str)
-    selected = signal(int)
     
     def __init__(
             self,
@@ -42,6 +40,10 @@ class ListBox(Widget):
             'padding': padding,
         }
         self._title = title
+        
+        # signals
+        self.added = signal(int, str)
+        self.selected = signal(int)
     
     def render(self):
         return Panel(

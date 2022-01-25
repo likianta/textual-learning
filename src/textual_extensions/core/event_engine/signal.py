@@ -8,25 +8,32 @@ _signal_count = 0  # a simple auto incrementing number for signal id
 # noinspection PyPep8Naming
 class signal:  # the lowercase is more comfortable in coding (in my feeling).
     """
-    style guide:
-        - use passive voice for signals (e.g. 'clicked', 'changed', ...).
-        - define it in the top of class.
+    code of conduct:
+        signal naming convention:
+            - use snake case.
+            - use passive tense (e.g. 'clicked', 'pressed', 'released', etc.).
     
-    examples:
-        class SomeWidget(Widget):
-            clicked = signal()
-            
-            async def on_click(self, event):
-                self.clicked.emit(event)
-        
-        class AnotherWidget(Widget):
-        
-            def __init__(self):
-                some_widget = SomeWidget()
-                some_widget.clicked.connect(self.do_something)
-        
-            def do_something(self, *args, **kwargs):
-                ...
+    warning:
+        for the limitation of current design, you must instantiate every signal
+        in class's __init__ method.
+    
+        for example:
+            class SomeWidget(Widget):
+                
+                def __init__(self):
+                    self.clicked = signal()
+                    
+                async def on_clicked(self, event):
+                    self.clicked.emit(event)
+    
+            class AnotherWidget(Widget):
+                
+                def __init__(self, source_widget):
+                    # pass source widget instance as param.
+                    source_widget.clicked.connect(self.do_something)
+                    
+                def do_something(self, event):
+                    ...
     """
     _annotations: Optional[tuple]
     _id: int  # FIXME
@@ -42,7 +49,7 @@ class signal:  # the lowercase is more comfortable in coding (in my feeling).
     
     def emit(self, *args, **kwargs):
         event_bus.broadcast(self._id, *args, **kwargs)
-
+    
     # async def emit(self, *args, **kwargs):
     #     await event_bus.broadcast(self._id, *args, **kwargs)
 
