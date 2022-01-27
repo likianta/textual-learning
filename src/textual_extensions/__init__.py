@@ -1,2 +1,2 @@
-from .custom_widgets import *
 from .core import *
+from .widgets import *

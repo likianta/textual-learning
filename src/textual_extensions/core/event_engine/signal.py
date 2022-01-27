@@ -2,7 +2,7 @@ from typing import Optional
 
 from .events import event_bus
 
-_signal_count = 0  # a simple auto incrementing number for signal id
+_signal_count = 0  # a simple auto incrementing counter for signal id
 
 
 # noinspection PyPep8Naming
@@ -19,8 +19,11 @@ class signal:  # the lowercase is more comfortable in coding (in my feeling).
     
         for example:
             class SomeWidget(Widget):
+                # wrong
+                pressed = signal()
                 
                 def __init__(self):
+                    # right
                     self.clicked = signal()
                     
                 async def on_clicked(self, event):
@@ -45,7 +48,10 @@ class signal:  # the lowercase is more comfortable in coding (in my feeling).
         self._id = _signal_count
     
     def connect(self, callback):
-        event_bus.subscribe(self._id, callback)
+        if isinstance(callback, signal):
+            event_bus.subscribe(self._id, callback.emit)
+        else:
+            event_bus.subscribe(self._id, callback)
     
     def emit(self, *args, **kwargs):
         event_bus.broadcast(self._id, *args, **kwargs)
