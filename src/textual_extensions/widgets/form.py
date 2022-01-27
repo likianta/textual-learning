@@ -1,8 +1,8 @@
 from textual.views import DockView
 
+from .focus_scope import FocusScope
 from .input import Input
 from .label import Label
-from .focus_scope import FocusScope, Focusable
 
 
 class Form(DockView, FocusScope):
@@ -30,14 +30,16 @@ class Form(DockView, FocusScope):
 class Field(DockView):
     
     def __init__(self, field: str, value='', placeholder: str = '',
-                 field_width: int = None):
+                 field_width: int = None, focus_scope=None):
         super().__init__()
         self._field = field
         self._field_width = field_width
+        self._focus_scope = focus_scope
         self._placeholder = placeholder
         self._value = value
     
     async def on_mount(self, event):
         await self.dock(Label(self._field + ': ', align='right'), edge='left',
                         size=self._field_width)
-        await self.dock(Input(self._value, self._placeholder), edge='left')
+        await self.dock(Input(self._value, self._placeholder,
+                              focus_scope=self._focus_scope), edge='left')
