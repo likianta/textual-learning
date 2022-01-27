@@ -6,8 +6,10 @@ from textual import events
 from textual.keys import Keys
 from textual.widget import Widget
 
+from .focus_scope import Focusable
 from ..core import log
 
+# _platform = ''
 _platform = 'windows wsl'  # DEBUG: manually edit here.
 #   ps: cuz i'm currently debugging in windows wsl environment, so i set it to
 #       'windows wsl'; otherwise KEEP IT BLANK.
@@ -15,7 +17,7 @@ _platform = 'windows wsl'  # DEBUG: manually edit here.
 normal_inputs = digits + ascii_letters + punctuation + " "
 
 
-class Input(Widget):
+class Input(Widget, Focusable):
     # TODO: features in progress:
     #   - copy, clip and paste
     #   - selection (mouse selection and keyboard selection)
@@ -33,18 +35,23 @@ class Input(Widget):
     
     def __init__(
             self, text='', placeholder='', *,
-            cursor_bold=False, cursor_shape='_', padding=1
+            cursor_bold=False, cursor_shape='_', focus_scope=None, padding=1,
     ):
         """
         args:
             text: str
             placeholder: str
             cursor_bold: bool
-            cursor_shape: literal['_', '__', '|', '▉']
+            cursor_shape: literal['_', '|', '▉']
             padding: int
         """
-        super().__init__()
-        self._focused = False
+        Widget.__init__(self)
+        Focusable.__init__(self, focus_scope)
+        #   Focusable provides:
+        #       self._focused: bool
+        #       self.gain_focus()
+        #       self.lose_focus()
+        #       self.on_focused: signal
         self._padding = padding
         self._placeholder = placeholder
         self._typed_chars = TypedChars(
@@ -55,7 +62,7 @@ class Input(Widget):
         if self._focused:
             # notice:
             #   there is a point that, if cursor shape is '_' or '▉', and the
-            #   cursor is at the end, `self._type_chars` has to add an
+            #   cursor is at the end, `self._typed_chars` has to add an
             #   additional whitespace to make sure tailed cursor can be
             #   rendered. but we need to strip this whitespace otherwise it
             #   causes `self._fill_bg` incorrect its background width.
@@ -92,7 +99,7 @@ class Input(Widget):
     # == events ==
     
     async def on_click(self, event: events.Click):
-        self._focused = True
+        self.gain_focus()
         self._typed_chars.activate(event.x - self._padding)
         self.refresh()
         event.prevent_default()
@@ -168,6 +175,14 @@ class Input(Widget):
         if length < self._content_width:
             text += ' ' * (self._content_width - length)
         return text
+    
+    def gain_focus(self, _notify=True):
+        super().gain_focus(_notify)
+        self.refresh()
+    
+    def lose_focus(self, _notify=True):
+        super().lose_focus(_notify)
+        self.refresh()
 
 
 class TypedChars:
@@ -295,14 +310,16 @@ class TypedChars:
                 b.append(' ')
             if self._cursor.shape == '_':
                 # underline
-                b[0] = '[u color(36)]{}[/]'.format(b[0])
-            elif self._cursor.shape == '__':
-                # double underline
-                a[-1] = '[u #FAAFD7]{}[/]'.format(a[-1])  # underline pink
-                b[0] = '[u color(36)]{}[/]'.format(b[0])  # underline green
+                if b[0] == ' ':
+                    b[0] = '[blink u color(36)]{}[/]'.format(b[0])
+                else:  # dont blink if cursor is on a visible character.
+                    b[0] = '[u color(36)]{}[/]'.format(b[0])
             elif self._cursor.shape == '▉':
                 # block
-                b[0] = '[default on green]{}[/]'.format(b[0])
+                if b[0] == ' ':
+                    b[0] = '[blink on green]{}[/]'.format(b[0])
+                else:
+                    b[0] = '[default on green]{}[/]'.format(b[0])
             return '{}{}'.format(
                 ''.join(a),
                 ''.join(b),
@@ -338,16 +355,24 @@ class TypedChars:
 
 
 class Cursor:
+    """
+    references:
+        cursor blinking: https://github.com/camgraff/tmux-schmooze/blob/master
+            /tmux_schmooze/ui.py
+    
+    FIXME:
+        - if cursor shape is '▉', the blinking effect is invalid.
+        - the blinking effect is a little laggy (delay 100~300ms) when it is
+            activated.
+    """
     index: int  # starts from 0. it indicates the left side of current char.
     rich_shape: str
     shape: str
     
     def __init__(self, shape='_', bold=False):
-        assert shape in ('_', '__', '|', '▉')
+        assert shape in ('_', '|', '▉')
         #   _   underline           default type. green char with underline
         #                           effect.
-        #   __  double underline    the first char is colored red (also with
-        #                           underline effect), the second is green.
         #   ▉   block               white text on green background.
         #   |   line                green line between two chars. note this
         #                           shape is special compared to others. it
@@ -366,16 +391,14 @@ class Cursor:
         
         if shape == '▉':
             if bold:
-                self.rich_shape = '[bold on green] [/]'
+                self.rich_shape = '[blink bold on green] [/]'
             else:
-                self.rich_shape = '[default on green] [/]'
+                self.rich_shape = '[blink on greed] [/]'
         else:
-            if shape == '__':
-                shape = '_'
             if bold:
-                self.rich_shape = '[bold color(36)]{}[/]'.format(shape)
+                self.rich_shape = '[blink bold color(36)]{}[/]'.format(shape)
             else:
-                self.rich_shape = '[color(36)]{}[/]'.format(shape)
+                self.rich_shape = '[blink color(36)]{}[/]'.format(shape)
     
     def activate(self, x: int, text_length: int):
         self.index = min((x, text_length))
