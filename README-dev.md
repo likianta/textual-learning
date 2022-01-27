@@ -10,3 +10,4 @@ sources root:
 
 - lib
 - src
+- src/examples
