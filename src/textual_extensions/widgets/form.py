@@ -49,9 +49,9 @@ class Field(DockView):
                                    focus_scope=self._focus_scope), edge='left')
         self._input = x
 
-    async def on_key(self, event):
-        if event.key == Keys.Tab:
-            pass
+    # async def on_key(self, event):
+    #     if event.key == Keys.Tab:
+    #         pass
 
     def update_value(self, value):
         self._value = value

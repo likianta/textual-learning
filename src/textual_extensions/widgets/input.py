@@ -168,6 +168,7 @@ class Input(Widget, Focusable):
     def gain_focus(self, _notify=True):
         super().gain_focus(_notify)
         self.refresh()
+        # self.app.set_focus(self)
     
     def lose_focus(self, _notify=True):
         super().lose_focus(_notify)

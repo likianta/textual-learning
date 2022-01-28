@@ -47,8 +47,12 @@ class FocusScope:
             last_index = current_index - 1
             last_uid = self.__items_list[last_index]
             last_item = self.__items_dict[last_uid]
-            last_item.gain_focus()
-            # self.change_focus(last_uid, last_item)
+        else:
+            last_index = len(self.__items_list) - 1
+            last_uid = self.__items_list[last_index]
+            last_item = self.__items_dict[last_uid]
+        last_item.gain_focus()
+        # self.change_focus(last_uid, last_item)
     
     def focus_next(self):
         current_index = self.__items_list.index(self.__last_focused[0])
@@ -56,8 +60,12 @@ class FocusScope:
             next_index = current_index + 1
             next_uid = self.__items_list[next_index]
             next_item = self.__items_dict[next_uid]
-            next_item.gain_focus()
-            # self.change_focus(next_uid, next_item)
+        else:
+            next_index = 0
+            next_uid = self.__items_list[next_index]
+            next_item = self.__items_dict[next_uid]
+        next_item.gain_focus()
+        # self.change_focus(next_uid, next_item)
 
 
 global_focus_scope = FocusScope()
@@ -85,7 +93,7 @@ class Focusable:
         self._focused = False
         # if _notify:
         #     self.on_focused.emit(self._uid, self)
-
+    
     async def on_key(self, event):
         if event.key == Keys.Tab:
             self._scope.focus_next()
