@@ -10,6 +10,7 @@ from ..core import signal
 class T:
     UID = int
     Item = 'Item'
+    Value = str
 
 
 class ListBox(VBox):
@@ -26,7 +27,7 @@ class ListBox(VBox):
         self._id_generator = 0
         self._names = names
         
-        self.selected = signal(T.UID, T.Item)
+        self.on_selected = signal(T.UID, T.Value)
     
     async def on_mount(self, event):
         for name in self._names:
@@ -60,14 +61,14 @@ class ListBox(VBox):
     def _on_item_selected(self, uid: int, item: 'Item'):
         if self._selected_item is None:
             self._selected_item = (uid, item)
-            self.selected.emit(uid, item)
+            self.on_selected.emit(uid, item.text)
             return
         
         last_uid, last_item = self._selected_item
         if last_uid != uid:
             last_item.unselect()
             self._selected_item = (uid, item)
-            self.selected.emit(uid, item)
+            self.on_selected.emit(uid, item.text)
 
 
 class Item(Widget):
@@ -112,14 +113,15 @@ class Item(Widget):
         return content
     
     @property
+    def text(self):
+        return self._text
+    
+    @property
     def _index(self) -> int:
         return self.__index_ref.index(self._uid)
     
     async def on_click(self, event):
         self.select()
-        # self._selected = True
-        # self.clicked.emit(self._uid, self)
-        # self.refresh()
         event.prevent_default()
     
     async def on_enter(self):
@@ -132,8 +134,8 @@ class Item(Widget):
         
     def select(self):
         self._selected = True
-        self.clicked.emit(self._uid, self)
         self.refresh()
+        self.clicked.emit(self._uid, self)
         
     def unselect(self):
         self._selected = False
