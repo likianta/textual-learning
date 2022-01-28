@@ -1,6 +1,4 @@
-from string import ascii_letters
-from string import digits
-from string import punctuation
+from string import printable
 
 from textual import events
 from textual.keys import Keys
@@ -8,13 +6,6 @@ from textual.widget import Widget
 
 from .focus_scope import Focusable
 from ..core import log
-
-# _platform = ''
-_platform = 'windows wsl'  # DEBUG: manually edit here.
-#   ps: cuz i'm currently debugging in windows wsl environment, so i set it to
-#       'windows wsl'; otherwise KEEP IT BLANK.
-#   see also `Input.on_key : the code part about 'bug fixes'`.
-normal_inputs = digits + ascii_letters + punctuation + " "
 
 
 class Input(Widget, Focusable):
@@ -96,6 +87,8 @@ class Input(Widget, Focusable):
             ' ' * self._padding, rich_text
         )
     
+    # -------------------------------------------------------------------------
+    
     # == events ==
     
     async def on_click(self, event: events.Click):
@@ -111,12 +104,13 @@ class Input(Widget, Focusable):
         
         # normal inputs
         is_changed = None
-        if event.key in normal_inputs:
+        if event.key in printable:
             is_changed = self._typed_chars.add(event.key)
         
         # manipulate existed chars and move cursor
         
-        elif event.key == Keys.Backspace:
+        elif event.key in (Keys.Backspace, Keys.ControlH):
+            # backspace is recognized as `control + h` in unix system.
             is_changed = self._typed_chars.del_left()
         
         elif event.key == Keys.Delete:
@@ -124,10 +118,15 @@ class Input(Widget, Focusable):
         
         # focus changed
         
-        elif event.key in (Keys.Enter, Keys.Escape, Keys.Tab):
+        elif event.key in (Keys.Enter, Keys.Escape):
             # emit('enter', self._text)  # FIXME
             self._focused = False
             is_changed = True
+        
+        elif event.key in (Keys.Tab, Keys.ControlI):
+            self._scope.focus_next()
+        elif event.key == 'shift+tab':
+            self._scope.focus_prev()
         
         # navigation
         
@@ -140,18 +139,8 @@ class Input(Widget, Focusable):
         elif event.key == Keys.Right:
             is_changed = self._typed_chars.move('right')
         
-        # bug fixes:
-        #   in windows wsl2, key `backspace` is recognized as `ctrl+h`.
-        if _platform == 'windows wsl':
-            if event.key == Keys.ControlH:
-                is_changed = self._typed_chars.del_left()
-        
         if is_changed is True:
             self.refresh()
-        # elif is_changed is None:
-        #     raise ValueError('unknown key: {}'.format(event.key))
-        # else:
-        #     return
     
     # == properties ==
     
@@ -183,6 +172,14 @@ class Input(Widget, Focusable):
     def lose_focus(self, _notify=True):
         super().lose_focus(_notify)
         self.refresh()
+    
+    def set_text(self, text: str):
+        if self._typed_chars.text != text:
+            self._typed_chars = TypedChars(
+                # FIXME: use TypedCharsFactory to re-create TypedChars instance.
+                text, cursor_bold=True, cursor_shape='_'
+            )
+            self.refresh()
 
 
 class TypedChars:
