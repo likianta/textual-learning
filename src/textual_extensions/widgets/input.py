@@ -7,7 +7,6 @@ from textual.widget import Widget
 
 from .focus_scope import Focusable
 from ..core import log
-from ..core import signal
 
 
 class Input(Widget, Focusable):
@@ -19,8 +18,8 @@ class Input(Widget, Focusable):
     # FIXME:
     #   - when text is too long to show, the cursor will be out of the visible
     #     zone.
-    focus_test = Reactive(False)
-    _focused: bool
+    submit_data = Reactive(None)
+    _focused = Reactive(False)
     _padding: int
     _placeholder = ''
     _typed_chars: 'TypedChars'
@@ -53,7 +52,6 @@ class Input(Widget, Focusable):
             bold=cursor_bold,
             shape=cursor_shape
         )
-        self.on_submit = signal()
     
     def render(self):
         if self._focused:
@@ -125,13 +123,18 @@ class Input(Widget, Focusable):
         
         # focus changed
         
-        elif event.key in (Keys.Enter, Keys.Escape):
-            # emit('enter', self._text)  # FIXME
+        elif event.key == Keys.Enter:
+            self.submit_data = self._typed_chars.text
+            self._focused = False
+            is_changed = True
+            
+        elif event.key == Keys.Escape:
             self._focused = False
             is_changed = True
         
         elif event.key in (Keys.Tab, Keys.ControlI):
             self._scope.focus_next()
+            
         elif event.key == 'shift+tab':
             self._scope.focus_prev()
         
@@ -149,15 +152,10 @@ class Input(Widget, Focusable):
         if is_changed is True:
             self.refresh()
     
-    async def watch_focus_test(self, focus: bool):
-        # see also `self.gain_focus`
+    async def watch__focused(self, focus: bool):
         if focus:
-            self._focused = True
-            self.refresh()
-            await self.focus()  # inherit from `Widget`
-        else:
-            self._focused = False
-            self.refresh()
+            await self.focus()
+        self.refresh()  # inherit from `Widget`
     
     # == properties ==
     
@@ -182,13 +180,9 @@ class Input(Widget, Focusable):
             text += ' ' * (self._content_width - length)
         return text
     
-    def gain_focus(self, _notify=True):
-        super().gain_focus(_notify)
-        self.focus_test = True
-    
-    def lose_focus(self, _notify=True):
-        super().lose_focus(_notify)
-        self.refresh()
+    # def lose_focus(self, _notify=True):
+    #     super().lose_focus(_notify)
+    #     self.refresh()
     
     def set_text(self, text: str):
         if self._typed_chars.text != text:
@@ -399,9 +393,17 @@ class Cursor:
             '|' if shape == '|' else '{char}'
             #   about '{char}': see `self.get_rich_cursor`.
         )
+        # fix style markup format.
         from re import sub
         self._rich_shape = sub(r'^\[ +', '[', self._rich_shape)
-    
+        self._rich_shape = sub(r' +', ' ', self._rich_shape)
+        #   before: '[ bold color(36)]|[/]'
+        #       after:  '[bold color(36)]|[/]'
+        #                ^ remove space after left bracket.
+        #   before: '[blink  u color(36)]{}[/]'
+        #       after:  '[blink u color(36)]{}[/]'
+        #                      ^ merge duplicated spaces.
+        
     def activate(self, x: int, text_length: int):
         self.index = min((x, text_length))
     
