@@ -1,7 +1,7 @@
 /.idea/
 /dont_commit/
 /lib/
-/src/examples/cow/
+/src/.idea/
 /tests/
 .DS_Store
 __pycache__

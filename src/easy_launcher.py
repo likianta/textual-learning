@@ -7,6 +7,8 @@ cmd:
 import os
 import sys
 
+# sys.path.insert(0, os.path.abspath('../lib'))
+
 current_dir = os.path.abspath('.')  # -> `~/src`
 sys.path.append(current_dir)
 sys.path.append(current_dir + '/examples')
