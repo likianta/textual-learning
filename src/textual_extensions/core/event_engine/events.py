@@ -1,12 +1,10 @@
-from collections import defaultdict
-
-
 class EventBus:
     
     def __init__(self):
+        from collections import defaultdict
         from concurrent.futures import ThreadPoolExecutor
         self._events = defaultdict(set)  # dict[str channel, set[callback]]
-        self._pool = ThreadPoolExecutor(max_workers=2)
+        self._pool = ThreadPoolExecutor(max_workers=3)
     
     def subscribe(self, channel, callback):
         self._events[channel].add(callback)
