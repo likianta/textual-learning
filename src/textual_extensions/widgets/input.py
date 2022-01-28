@@ -2,10 +2,12 @@ from string import printable
 
 from textual import events
 from textual.keys import Keys
+from textual.reactive import Reactive
 from textual.widget import Widget
 
 from .focus_scope import Focusable
 from ..core import log
+from ..core import signal
 
 
 class Input(Widget, Focusable):
@@ -15,10 +17,9 @@ class Input(Widget, Focusable):
     #   - jump by word (ctrl + left, ctrl + right)
     #   - auto complete (popup or inline prompt text)
     # FIXME:
-    #   - rich highlight syntax is laggy (see `Cursor.rich_shape` and
-    #    `TypedChars.rich_text_with_cursor`)
     #   - when text is too long to show, the cursor will be out of the visible
     #     zone.
+    focus_test = Reactive(False)
     _focused: bool
     _padding: int
     _placeholder = ''
@@ -26,7 +27,8 @@ class Input(Widget, Focusable):
     
     def __init__(
             self, text='', placeholder='', *,
-            cursor_bold=False, cursor_shape='_', focus_scope=None, padding=1,
+            cursor_blink=True, cursor_bold=False, cursor_shape='_',
+            focus_scope=None, padding=1,
     ):
         """
         args:
@@ -46,8 +48,12 @@ class Input(Widget, Focusable):
         self._padding = padding
         self._placeholder = placeholder
         self._typed_chars = TypedChars(
-            text, cursor_bold=cursor_bold, cursor_shape=cursor_shape
+            text,
+            blink=cursor_blink,
+            bold=cursor_bold,
+            shape=cursor_shape
         )
+        self.on_submit = signal()
     
     def render(self):
         if self._focused:
@@ -92,6 +98,7 @@ class Input(Widget, Focusable):
     # == events ==
     
     async def on_click(self, event: events.Click):
+        # await self.gain_focus()
         self.gain_focus()
         self._typed_chars.activate(event.x - self._padding)
         self.refresh()
@@ -142,6 +149,16 @@ class Input(Widget, Focusable):
         if is_changed is True:
             self.refresh()
     
+    async def watch_focus_test(self, focus: bool):
+        # see also `self.gain_focus`
+        if focus:
+            self._focused = True
+            self.refresh()
+            await self.focus()  # inherit from `Widget`
+        else:
+            self._focused = False
+            self.refresh()
+    
     # == properties ==
     
     @property
@@ -167,8 +184,7 @@ class Input(Widget, Focusable):
     
     def gain_focus(self, _notify=True):
         super().gain_focus(_notify)
-        self.refresh()
-        # self.app.set_focus(self)
+        self.focus_test = True
     
     def lose_focus(self, _notify=True):
         super().lose_focus(_notify)
@@ -187,11 +203,8 @@ class TypedChars:
     _cursor: 'Cursor'
     _typed_chars: list
     
-    def __init__(
-            self, text: str = '', *,
-            cursor_bold=False, cursor_shape='_'
-    ):
-        self._cursor = Cursor(cursor_shape, cursor_bold)
+    def __init__(self, text: str = '', **cursor_kwargs):
+        self._cursor = Cursor(**cursor_kwargs)
         self._typed_chars = [x for x in text]
     
     def __bool__(self):
@@ -291,7 +304,7 @@ class TypedChars:
     @property
     def rich_text_with_cursor(self):
         if not self._typed_chars:
-            return self._cursor.rich_shape
+            return self._cursor.get_rich_cursor()
         
         a, b = (
             self._typed_chars[:self._cursor.index],
@@ -299,29 +312,12 @@ class TypedChars:
         )
         if self._cursor.shape == '|':
             return '{}{}{}'.format(
-                ''.join(a),
-                self._cursor.rich_shape,
-                ''.join(b),
+                ''.join(a), self._cursor.get_rich_cursor(), ''.join(b)
             )
         else:
-            if not b:
-                b.append(' ')
-            if self._cursor.shape == '_':
-                # underline
-                if b[0] == ' ':
-                    b[0] = '[blink u color(36)]{}[/]'.format(b[0])
-                else:  # dont blink if cursor is on a visible character.
-                    b[0] = '[u color(36)]{}[/]'.format(b[0])
-            elif self._cursor.shape == '▉':
-                # block
-                if b[0] == ' ':
-                    b[0] = '[blink on green]{}[/]'.format(b[0])
-                else:
-                    b[0] = '[default on green]{}[/]'.format(b[0])
-            return '{}{}'.format(
-                ''.join(a),
-                ''.join(b),
-            )
+            if not b: b.append(' ')
+            b[0] = self._cursor.get_rich_cursor(b[0])
+            return '{}{}'.format(''.join(a), ''.join(b))
     
     @property
     def text(self):
@@ -360,14 +356,19 @@ class Cursor:
     
     FIXME:
         - if cursor shape is '▉', the blinking effect is invalid.
-        - the blinking effect is a little laggy (delay 100~300ms) when it is
-            activated.
     """
     index: int  # starts from 0. it indicates the left side of current char.
-    rich_shape: str
     shape: str
+    _rich_shape: str
     
-    def __init__(self, shape='_', bold=False):
+    def __init__(self, shape='_', blink=True, bold=False):
+        """
+        args:
+            shape: literal['_', '|', '▉']
+            blink: bool[True]
+                notice: the blinking effect is a little laggy (delay 100~200ms).
+            bold: bool[False]
+        """
         assert shape in ('_', '|', '▉')
         #   _   underline           default type. green char with underline
         #                           effect.
@@ -387,19 +388,34 @@ class Cursor:
         self.index = 0
         self.shape = shape
         
-        if shape == '▉':
-            if bold:
-                self.rich_shape = '[blink bold on green] [/]'
-            else:
-                self.rich_shape = '[blink on greed] [/]'
-        else:
-            if bold:
-                self.rich_shape = '[blink bold color(36)]{}[/]'.format(shape)
-            else:
-                self.rich_shape = '[blink color(36)]{}[/]'.format(shape)
+        self._rich_shape = '[{0} {1} {2}]{3}[/]'.format(
+            'blink' if blink else '',
+            'bold' if bold else '',
+            {
+                '_': 'u color(36)',  # blue underline
+                '|': 'color(36)',  # blue
+                '▉': 'color(16) on green',  # grey on green
+            }[shape],
+            '|' if shape == '|' else '{char}'
+            #   about '{char}': see `self.get_rich_cursor`.
+        )
+        from re import sub
+        self._rich_shape = sub(r'^\[ +', '[', self._rich_shape)
     
     def activate(self, x: int, text_length: int):
         self.index = min((x, text_length))
+    
+    def get_rich_cursor(self, char=' '):
+        if self.shape == '|':
+            return self._rich_shape
+        
+        if char != ' ':
+            # temporarily cancel blink for visual-friendly.
+            return self._rich_shape.format(char=char).replace(
+                '[blink ', '[', 1
+            )
+        else:
+            return self._rich_shape.format(char=char)
     
     # movements
     #   return: bool -- True means cursor index changed. False not.

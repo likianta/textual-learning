@@ -2,6 +2,7 @@
 /dont_commit/
 /lib/
 /src/.idea/
+/src/examples/
 /tests/
 .DS_Store
 __pycache__
