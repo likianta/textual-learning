@@ -1,5 +1,3 @@
-from typing import Optional
-
 from .events import event_bus
 
 _signal_count = 0  # a simple auto incrementing counter for signal id
@@ -38,7 +36,7 @@ class signal:  # the lowercase is more comfortable in coding (in my feeling).
                 def do_something(self, event):
                     ...
     """
-    _annotations: Optional[tuple]
+    _annotations: tuple
     _id: int  # FIXME
     
     def __init__(self, *annotations):
@@ -47,17 +45,18 @@ class signal:  # the lowercase is more comfortable in coding (in my feeling).
         self._annotations = annotations
         self._id = _signal_count
     
-    def connect(self, callback):
+    def connect(self, callback, is_async=False):
+        # FIXME: asyncio.coroutine.iscoroutine function is not available to
+        #   check if the callback is a coroutine. (i don't know why)
+        #   so if you are passing an async callback, you must set is_async=True
+        #   manually.
         if isinstance(callback, signal):
-            event_bus.subscribe(self._id, callback.emit)
+            event_bus.subscribe(self._id, callback.emit, True)
         else:
-            event_bus.subscribe(self._id, callback)
+            event_bus.subscribe(self._id, callback, is_async)
     
-    def emit(self, *args, **kwargs):
-        event_bus.broadcast(self._id, *args, **kwargs)
-    
-    # async def emit(self, *args, **kwargs):
-    #     await event_bus.broadcast(self._id, *args, **kwargs)
+    async def emit(self, *args, **kwargs):
+        await event_bus.broadcast(self._id, *args, **kwargs)
 
 
 # -----------------------------------------------------------------------------
