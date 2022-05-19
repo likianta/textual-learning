@@ -1,8 +1,6 @@
 from textual.app import App
 from textual.widgets import Placeholder
 
-from textual_extensions import event_bus
-
 
 class MyApp(App):
     
@@ -13,4 +11,3 @@ class MyApp(App):
 
 
 MyApp.run()
-event_bus.close()

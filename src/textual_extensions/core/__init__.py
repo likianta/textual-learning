@@ -4,3 +4,4 @@ from .event_engine import register
 from .event_engine import signal
 from .logger import Logger
 from .logger import log
+from .logger import logf

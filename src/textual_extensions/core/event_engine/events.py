@@ -24,14 +24,14 @@ class EventBusB:
     
     def __init__(self):
         from collections import defaultdict
-        self._events = defaultdict(set)  # dict[str channel, set[callback]]
+        self._events = defaultdict(set)
+        #   dict[str channel, set[tuple[func callback, bool is_async]]]
     
     def subscribe(self, channel, callback, is_async=False):
         self._events[channel].add((callback, is_async))
     
     async def broadcast(self, channel, *args, **kwargs):
         for (callback, is_async) in self._events[channel]:
-            # log('iscoroutine', iscoroutine(callback))
             if is_async:
                 await callback(*args, **kwargs)
             else:
