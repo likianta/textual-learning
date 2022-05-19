@@ -4,8 +4,9 @@ from os.path import relpath
 from typing import Optional
 
 from rich.panel import Panel
-from textual.widget import Widget
+from rich.text import Text
 from textual import log as _log
+from textual.widget import Widget
 
 __all__ = ['Logger', 'log', 'logf']
 
@@ -21,7 +22,7 @@ class Logger(Widget):
     # _source_pos: str = ''
     _working_dir: str = getcwd()
     
-    def __init__(self, content_height=1):
+    def __init__(self, content_height=1, debug=False):
         """
         we suggust Logger's height to be `content_height + 2` -- the two is for
         its border size.
@@ -35,6 +36,7 @@ class Logger(Widget):
                     )
         """
         super().__init__()
+        self.debug = debug
         self._cache = []
         self._content_height = content_height
         global _logger
@@ -42,21 +44,26 @@ class Logger(Widget):
     
     def render(self):
         return Panel(
-            '\n'.join(self._cache[-self._content_height:]),
+            Text('\n'.join(self._cache[-self._content_height:]),
+                 overflow='crop'),
             title=f'Logger ({len(self._cache)})', title_align='right',
             border_style='dim',
+        
         )
     
     def log(self, *args, frame=None):
-        if not frame:
-            frame = currentframe().f_back.f_back
-        file_abs = frame.f_globals.get('__file__') or frame.f_code.co_filename
-        file_rel = relpath(file_abs, self._working_dir)
-        line = frame.f_lineno
-        
-        source_pos = f'{file_rel}:{line}'
         message = '; '.join(map(str, args)).strip('; ')
-        self._cache.append(f'{source_pos} >> {message}')
+        if not self.debug:
+            self._cache.append(message)
+        else:
+            if not frame:
+                frame = currentframe().f_back.f_back
+            file_abs = frame.f_globals.get('__file__') \
+                       or frame.f_code.co_filename
+            file_rel = relpath(file_abs, self._working_dir)
+            line = frame.f_lineno
+            source_pos = f'{file_rel}:{line}'
+            self._cache.append(f'[blue]{source_pos}[/] [dim]>>[/] {message}')
         self.refresh()
     
     def dump(self, file=''):
