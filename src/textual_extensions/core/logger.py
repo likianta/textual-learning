@@ -5,6 +5,12 @@ from typing import Optional
 
 from rich.panel import Panel
 from textual.widget import Widget
+from textual import log as _log
+
+__all__ = ['Logger', 'log', 'logf']
+
+# log to file
+logf = _log
 
 
 # TODO: make this widget scrollable
@@ -17,15 +23,15 @@ class Logger(Widget):
     
     def __init__(self, content_height=1):
         """
-        we suggust Logger widget height should be param content_height plus 2
-        -- one for upper border line and one for the bottom.
+        we suggust Logger's height to be `content_height + 2` -- the two is for
+        its border size.
         for example:
             class MyApp(textual.app.App):
                 async def on_mount(self):
                     await self.view.dock(
-                        Logger(content_height=2),
-                        edge='bottom',
-                        size=4  # <- content_height + 2
+                        Logger(content_height=1),  # -------+
+                        edge='bottom',  #                   |
+                        size=3  # <- content_height + 2  <--+
                     )
         """
         super().__init__()
@@ -37,7 +43,8 @@ class Logger(Widget):
     def render(self):
         return Panel(
             '\n'.join(self._cache[-self._content_height:]),
-            title=f'Logger ({len(self._cache)})', title_align='right'
+            title=f'Logger ({len(self._cache)})', title_align='right',
+            border_style='dim',
         )
     
     def log(self, *args, frame=None):
