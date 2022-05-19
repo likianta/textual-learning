@@ -127,14 +127,14 @@ class Input(Widget, Focusable):
             self.submit_data = self._typed_chars.text
             self._focused = False
             is_changed = True
-            
+        
         elif event.key == Keys.Escape:
             self._focused = False
             is_changed = True
         
         elif event.key in (Keys.Tab, Keys.ControlI):
             self._scope.focus_next()
-            
+        
         elif event.key == 'shift+tab':
             self._scope.focus_prev()
         
@@ -403,14 +403,13 @@ class Cursor:
         #   before: '[blink  u color(36)]{}[/]'
         #       after:  '[blink u color(36)]{}[/]'
         #                      ^ merge duplicated spaces.
-        
+    
     def activate(self, x: int, text_length: int):
         self.index = min((x, text_length))
     
     def get_rich_cursor(self, char=' '):
         if self.shape == '|':
             return self._rich_shape
-        
         if char != ' ':
             # temporarily cancel blink for visual-friendly.
             return self._rich_shape.format(char=char).replace(

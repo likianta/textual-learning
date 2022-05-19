@@ -3,10 +3,13 @@ the box layout.
     hbox: ...
     vbox: ...
 """
+from functools import partial
+
 from textual.views import DockView
 
-from .spacing import HSpacing
-from .spacing import VSpacing
+from .spacer import HSpacer
+from .spacer import VSpacer
+from .spacer import Spacer
 
 
 class Base(DockView):
@@ -49,18 +52,18 @@ class Base(DockView):
 
 class HBox(Base):
     
-    def __init__(self, *widgets, spacing=1):
+    def __init__(self, *widgets, spacing=1, spacer=' '):
         super().__init__(*widgets, default_size=10)
         #   default_size is as known as item width.
         self._spacing = spacing  # suggest 1 or 0.
+        self._spacer = partial(Spacer, pattern=spacer)
     
     async def on_mount(self, event):
         if self._spacing:
             for w in self._widgets:
                 await self.dock(w, edge='left',
                                 size=getattr(w, 'length', self._default_size))
-                await self.dock(VSpacing(self._spacing), edge='left',
-                                size=self._spacing)
+                await self.dock(self._spacer(), edge='left', size=self._spacing)
         else:
             for w in self._widgets:
                 await self.dock(w, edge='left',
@@ -80,7 +83,7 @@ class VBox(Base):
             for w in self._widgets:
                 await self.dock(w, edge='top', size=1)
                 await self.dock(
-                    HSpacing(self._spacing), edge='top', size=self._spacing
+                    HSpacer(self._spacing), edge='top', size=self._spacing
                 )
         else:
             await self.dock(*self._widgets, edge='top', size=1)
