@@ -1,0 +1,26 @@
+# notice: this project WON'T be published to pypi!
+# this toml file is made for pip that can be installing by git:
+#   pip install git+https://github.com/likianta/textual-learning.git
+
+[tool.poetry]
+name = "textual-extensions"
+version = "0.1.0"
+homepage = "https://github.com/likianta/textual-learning"
+description = ""
+readme = "README.md"
+authors = ["Likianta <likianta@foxmail.com>"]
+license = "MIT"
+
+[[tool.poetry.source]]
+name = "tsinghua"
+url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple/"
+default = true
+
+[tool.poetry.dependencies]
+python = "^3.8"
+lk-utils = ""
+textual = ""
+
+[build-system]
+requires = ["poetry>=1.0"]
+build-backend = "poetry.masonry.api"
