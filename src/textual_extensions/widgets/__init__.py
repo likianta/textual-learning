@@ -14,6 +14,7 @@ from .label import Label
 from .listbox2 import ListBox
 from .spacer import HSpacer
 from .spacer import VSpacer
+from .tab_bar import Tabbar
 from .view_frame import FrameView
 from .view_frame import HLine
 from .view_frame import VLine

@@ -1,51 +1,41 @@
+from rich.align import Align
 from rich.console import RenderableType
-from textual.widget import Widget
+from textual.reactive import Reactive
+from textual.widgets import Button as BaseButton
+
+__all__ = ['Button']
 
 
-class Button(Widget):
+class Button(BaseButton):
+    hovered = Reactive(False)
+    pressed = Reactive(False)
     
-    def __init__(self, label: str, padding=1, width=None):
-        super().__init__()
-        self._enabled = True
-        self._label = label
-        # self._padding = padding
-        self._pressed = False
-        self._width = (width or len(label)) + 2 * padding
+    def __len__(self):
+        return len(self.label) + 2
     
-    @property
-    def length(self):
-        return self._width
+    async def on_enter(self, _):
+        self.hovered = True
+    
+    async def on_leave(self, _):
+        self.hovered = False
+    
+    async def on_mouse_down(self, _) -> None:
+        self.pressed = True
+    
+    async def on_mouse_up(self, _) -> None:
+        self.pressed = False
     
     def render(self) -> RenderableType:
-        label = self._label
-        str_spacing = ' ' * ((self._width - len(label)) // 2)
-        label = str_spacing + label + str_spacing
-        if self._enabled:
-            # normal color: light blue on gray
-            # pressed color: light blue on dark magenta
-            return '[{fg} on {bg}]{label}[/]'.format(
-                fg='color(87)',
-                bg='#444444' if self._pressed else '#3F298F',
-                label=label
-            )
-        else:
-            return '[{fg} on {bg}]{label}[/]'.format(
-                fg='color(8)',
-                bg='#444444',
-                label=label
-            )
-    
-    def set_enabled(self, value: bool):
-        if self._enabled != value:
-            self._enabled = value
-            self.refresh()
-    
-    async def on_mouse_down(self, event):
-        self._pressed = True
-        self.refresh()
-        event.prevent_default()
-    
-    async def on_mouse_up(self, event):
-        self._pressed = False
-        self.refresh()
-        event.prevent_default()
+        return Align.center(
+            self.label,
+            style='white bold on blue3' if self.pressed
+            else 'white bold on deep_sky_blue4' if self.hovered
+            else 'white on dodger_blue2',
+            vertical="middle",
+            width=len(self.label) + 2,
+            height=1,
+        )
+
+
+class BorderedButton(Button):
+    pass  # TODO
