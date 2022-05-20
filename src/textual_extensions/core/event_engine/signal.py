@@ -1,11 +1,14 @@
 from .events import event_bus
 
-_signal_count = 0  # a simple auto incrementing counter for signal id
+_signal_count = 0  # a simple auto increment counter for generating signal ids.
 
 
 # noinspection PyPep8Naming
-class signal:  # the lowercase is more comfortable in coding (in my feeling).
+class signal:
     """
+    (i'm using lowercase for class name, the lowercase feels more comfortable
+     in my opinion.)
+    
     code of conduct:
         signal naming convention:
             - use snake case.
@@ -48,8 +51,8 @@ class signal:  # the lowercase is more comfortable in coding (in my feeling).
     def connect(self, callback, is_async=False):
         # FIXME: asyncio.coroutine.iscoroutine function is not available to
         #   check if the callback is a coroutine. (i don't know why)
-        #   so if you are passing an async callback, you must set is_async=True
-        #   manually.
+        #   so if you are passing an async callback, you must set
+        #   `is_async=True` explicitly.
         if isinstance(callback, signal):
             event_bus.subscribe(self._id, callback.emit, True)
         else:
@@ -61,8 +64,9 @@ class signal:  # the lowercase is more comfortable in coding (in my feeling).
 
 # -----------------------------------------------------------------------------
 # global signal
+# this would be friendly to simple use cases.
 
-def register(name, callback):
+def listen(name, callback):
     event_bus.subscribe(f'global#{name}', callback)
 
 

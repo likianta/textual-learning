@@ -28,6 +28,7 @@ class EventBusB:
         #   dict[str channel, set[tuple[func callback, bool is_async]]]
     
     def subscribe(self, channel, callback, is_async=False):
+        # PERF: can i auto detect if callback is async?
         self._events[channel].add((callback, is_async))
     
     async def broadcast(self, channel, *args, **kwargs):

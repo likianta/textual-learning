@@ -3,6 +3,8 @@ from rich.console import RenderableType
 from textual.reactive import Reactive
 from textual.widgets import Button as BaseButton
 
+from ..core import signal
+
 __all__ = ['Button']
 
 
@@ -10,8 +12,16 @@ class Button(BaseButton):
     hovered = Reactive(False)
     pressed = Reactive(False)
     
+    def __init__(self, label: str):
+        super().__init__(label)
+        self.clicked = signal()
+    
     def __len__(self):
         return len(self.label) + 2
+    
+    async def on_click(self, event) -> None:
+        # await super().on_click(event)
+        await self.clicked.emit()
     
     async def on_enter(self, _):
         self.hovered = True
