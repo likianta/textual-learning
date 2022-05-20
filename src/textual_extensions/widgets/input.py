@@ -3,9 +3,10 @@ from string import printable
 from textual import events
 from textual.keys import Keys
 from textual.reactive import Reactive
-from textual.widget import Widget
 
 from .focus_scope import Focusable
+from .widget import Widget
+from ..core import signal
 
 
 class Input(Widget, Focusable):
@@ -17,7 +18,7 @@ class Input(Widget, Focusable):
     # FIXME:
     #   - when text is too long to show, the cursor will be out of the visible
     #     zone.
-    submit_data = Reactive(None)
+    on_submitted = signal(str)
     _focused = Reactive(False)
     _padding: int
     _placeholder = ''
@@ -26,7 +27,7 @@ class Input(Widget, Focusable):
     def __init__(
             self, text='', placeholder='', *,
             cursor_blink=True, cursor_bold=False, cursor_shape='_',
-            focus_scope=None, padding=1,
+            focus_scope=None, keep_focus_after_submit=True, padding=1,
     ):
         """
         args:
@@ -43,6 +44,7 @@ class Input(Widget, Focusable):
         #       self.gain_focus()
         #       self.lose_focus()
         #       self.on_focused: signal
+        self._keep_focus_after_submit = keep_focus_after_submit
         self._padding = padding
         self._placeholder = placeholder
         self._typed_chars = TypedChars(
@@ -121,8 +123,9 @@ class Input(Widget, Focusable):
         # focus changed
         
         elif event.key == Keys.Enter:
-            self.submit_data = self._typed_chars.text
-            self._focused = False
+            await self.on_submitted.emit(self.text)
+            if not self._keep_focus_after_submit:
+                self._focused = False
             is_changed = True
         
         elif event.key == Keys.Escape:
@@ -203,6 +206,9 @@ class TypedChars:
     
     def __len__(self):
         return len(self._typed_chars)
+    
+    def __str__(self):
+        return ''.join(self._typed_chars)
     
     # @property
     # def length(self):
@@ -312,7 +318,7 @@ class TypedChars:
     
     @property
     def text(self):
-        return ''.join(self._typed_chars)
+        return str(self)
     
     @property
     def text_with_cursor(self):
