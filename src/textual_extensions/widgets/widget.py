@@ -1,15 +1,11 @@
 from textual.widget import Widget as BaseWidget
 
-from ..core import signal
+from ..core.event_engine import SignalSupport
 
 __all__ = ['Widget']
 
 
-class Widget(BaseWidget):
-    
+class Widget(BaseWidget, SignalSupport):
     def __init__(self, name=None):
-        super().__init__(name)
-        for k, v in self.__class__.__dict__.items():
-            if k.endswith('ed'):
-                if isinstance(v, signal):
-                    self.__dict__[k] = signal()
+        BaseWidget.__init__(self, name)
+        SignalSupport.__init__(self)

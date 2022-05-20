@@ -3,6 +3,14 @@ from .events import event_bus
 _signal_count = 0  # a simple auto increment counter for generating signal ids.
 
 
+class SignalSupport:
+    def __init__(self):
+        for k, v in self.__class__.__dict__.items():
+            if k.endswith('ed'):
+                if isinstance(v, signal):
+                    self.__dict__[k] = signal()
+
+
 # noinspection PyPep8Naming
 class signal:
     """

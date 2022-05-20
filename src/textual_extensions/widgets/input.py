@@ -161,10 +161,10 @@ class Input(Widget, Focusable):
             is_changed = True
         
         elif event.key in (Keys.Tab, Keys.ControlI):
-            self._scope.focus_next()
+            await self._scope.focus_next()
         
         elif event.key == 'shift+tab':
-            self._scope.focus_prev()
+            await self._scope.focus_prev()
         
         # navigation
         

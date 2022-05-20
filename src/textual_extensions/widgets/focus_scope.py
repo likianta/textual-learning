@@ -1,5 +1,6 @@
 from textual.keys import Keys
 
+from ..core import SignalSupport
 from ..core import signal
 
 __all__ = ['FocusScope', 'Focusable', 'global_focus_scope']
@@ -14,10 +15,11 @@ class IdGenerator:
         return self._cnt
 
 
-class FocusScope:
+class FocusScope(SignalSupport):
+    on_focus_changed = signal()
     
     def __init__(self):
-        self.on_focus_changed = signal()
+        super().__init__()
         self._id_gen = IdGenerator()
         self.__items_list = []  # list[int uid]
         self.__items_dict = {}  # dict[int uid, Focusable]
@@ -41,7 +43,7 @@ class FocusScope:
     def gen_id(self):
         return self._id_gen.gen_id()
     
-    def focus_prev(self):
+    async def focus_prev(self):
         current_index = self.__items_list.index(self.__last_focused[0])
         if current_index > 0:
             last_index = current_index - 1
@@ -51,10 +53,10 @@ class FocusScope:
             last_index = len(self.__items_list) - 1
             last_uid = self.__items_list[last_index]
             last_item = self.__items_dict[last_uid]
-        last_item.gain_focus()
+        await last_item.gain_focus()
         # self.change_focus(last_uid, last_item)
     
-    def focus_next(self):
+    async def focus_next(self):
         current_index = self.__items_list.index(self.__last_focused[0])
         if current_index < len(self.__items_list) - 1:
             next_index = current_index + 1
@@ -64,7 +66,7 @@ class FocusScope:
             next_index = 0
             next_uid = self.__items_list[next_index]
             next_item = self.__items_dict[next_uid]
-        next_item.gain_focus()
+        await next_item.gain_focus()
         # self.change_focus(next_uid, next_item)
 
 
@@ -96,6 +98,6 @@ class Focusable:
     
     async def on_key(self, event):
         if event.key == Keys.Tab:
-            self._scope.focus_next()
+            await self._scope.focus_next()
         elif event.key == 'shift+tab':  # fix: textual doesn't have Keys.ShiftTab
-            self._scope.focus_prev()
+            await self._scope.focus_prev()
