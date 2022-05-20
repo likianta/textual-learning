@@ -76,11 +76,12 @@ class Input(Widget, Focusable):
             '''
             
             def blinking():
-                cursor = self._typed_chars.get_cursor()
-                cursor.blink = not cursor.blink
-                self.refresh()
+                if self._focused:
+                    cursor = self._typed_chars.get_cursor()
+                    cursor.blink = not cursor.blink
+                    self.refresh()
             
-            self.set_interval(0.6, blinking)  # interval 0.5~0.7s
+            self.set_interval(0.6, blinking)  # suggest 0.5~0.7s
     
     def render(self):
         if self._focused:
@@ -132,6 +133,7 @@ class Input(Widget, Focusable):
         event.prevent_default()
     
     async def on_key(self, event: events.Key):
+        if not self._focused: return
         event.prevent_default()
         
         # normal inputs
@@ -384,10 +386,6 @@ class TypedChars:
 
 
 class Cursor:
-    """
-    FIXME:
-        - if cursor shape is '▉', the blinking effect is invalid.
-    """
     blink: bool  # default True. True means solid cursor, False means
     #   (temporarily) disappeared. this attr can be toggled by external caller.
     #   see also `Input : (attr) __blinking`.
