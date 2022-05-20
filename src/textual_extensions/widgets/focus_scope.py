@@ -27,16 +27,16 @@ class FocusScope:
         self.__items_list.append(uid)
         self.__items_dict[uid] = item
     
-    def change_focus(self, uid, item):
+    async def change_focus(self, uid, item):
         if self.__last_focused is not None:
             last_uid, last_item = self.__last_focused
             if last_uid != uid:
                 last_item.lose_focus(_notify=False)
                 self.__last_focused = (uid, item)
-                self.on_focus_changed.emit(uid, item)
+                await self.on_focus_changed.emit(uid, item)
         else:
             self.__last_focused = (uid, item)
-            self.on_focus_changed.emit(uid, item)
+            await self.on_focus_changed.emit(uid, item)
     
     def gen_id(self):
         return self._id_gen.gen_id()
@@ -81,13 +81,13 @@ class Focusable:
         # self.on_focus_changed = signal(int, bool)
         #   param#2: bool: True if goes to next, False goes to previous.
         
-        self.on_focused.connect(self._scope.change_focus)
+        self.on_focused.connect(self._scope.change_focus, is_async=True)
         self._scope.add(self._uid, self)
     
-    def gain_focus(self, _notify=True):
+    async def gain_focus(self, _notify=True):
         self._focused = True
         if _notify:
-            self.on_focused.emit(self._uid, self)
+            await self.on_focused.emit(self._uid, self)
     
     def lose_focus(self, _notify=True):  # DELETE: param not used
         self._focused = False

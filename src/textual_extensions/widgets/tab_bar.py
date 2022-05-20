@@ -16,17 +16,14 @@ __all__ = ['TabBar']
 class TabButton(Button):
     index: int
     checked = Reactive(False)
-    on_checked = signal()
-    
-    def __init__(self, label: str):
-        super().__init__(label)
+    on_checked = signal(int)
     
     def __len__(self):
         return len(self.label) + 4
     
-    async def on_click(self, event: events.Click) -> None:
-        # self.checked = True
-        self.on_checked.emit(self.index)
+    async def on_click(self, event) -> None:
+        event.prevent_default()
+        await self.on_checked.emit(self.index)
     
     def render(self) -> RenderableType:
         # priority: pressed > checked > hovered > default

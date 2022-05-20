@@ -6,7 +6,6 @@ from textual.reactive import Reactive
 from textual.widget import Widget
 
 from .focus_scope import Focusable
-from ..core import log
 
 
 class Input(Widget, Focusable):
@@ -97,14 +96,12 @@ class Input(Widget, Focusable):
     
     async def on_click(self, event: events.Click):
         # await self.gain_focus()
-        self.gain_focus()
+        await self.gain_focus()
         self._typed_chars.activate(event.x - self._padding)
         self.refresh()
         event.prevent_default()
     
     async def on_key(self, event: events.Key):
-        log('key: {}'.format(event.key))
-        
         event.prevent_default()
         
         # normal inputs
