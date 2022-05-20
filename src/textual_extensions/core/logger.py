@@ -52,7 +52,10 @@ class Logger(Widget):
     def log(self, *args, frame=None):
         message = '; '.join(map(str, args)).strip('; ')
         if not self.debug:
-            self._cache.append(message)
+            if self._cache and message == self._cache[-1]:
+                return
+            else:
+                self._cache.append(message)
         else:
             if not frame:
                 frame = currentframe().f_back.f_back
@@ -61,7 +64,12 @@ class Logger(Widget):
             file_rel = relpath(file_abs, self._working_dir)
             line = frame.f_lineno
             source_pos = f'{file_rel}:{line}'
-            self._cache.append(f'[blue]{source_pos}[/] [dim]>>[/] {message}')
+            
+            message = f'[blue]{source_pos}[/] [dim]>>[/] {message}'
+            if self._cache and message == self._cache[-1]:
+                return
+            else:
+                self._cache.append(message)
         self.refresh()
     
     def dump(self, file=''):
