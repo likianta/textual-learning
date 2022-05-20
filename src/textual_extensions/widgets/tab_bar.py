@@ -10,7 +10,7 @@ from textual.widgets import Static
 from .button import Button
 from ..core import signal
 
-__all__ = ['Tabbar']
+__all__ = ['TabBar']
 
 
 class TabButton(Button):
@@ -55,7 +55,7 @@ class TabButton(Button):
         )
 
 
-class Tabbar(DockView):
+class TabBar(DockView):
     # current_index = Reactive(-1)
     
     def __init__(self, *tab_names: str):
@@ -64,8 +64,6 @@ class Tabbar(DockView):
         self._tabs = tuple(map(TabButton, tab_names))
     
     def _switch_tab(self, index: int):
-        from ..core import log
-        log(index)
         last, curr = self.current_index, index
         if last == curr:
             return

@@ -4,7 +4,6 @@ from os.path import relpath
 from typing import Optional
 
 from rich.panel import Panel
-from rich.text import Text
 from textual import log as _log
 from textual.widget import Widget
 
@@ -44,8 +43,7 @@ class Logger(Widget):
     
     def render(self):
         return Panel(
-            Text('\n'.join(self._cache[-self._content_height:]),
-                 overflow='crop'),
+            '\n'.join(self._cache[-self._content_height:]),
             title=f'Logger ({len(self._cache)})', title_align='right',
             border_style='dim',
         
