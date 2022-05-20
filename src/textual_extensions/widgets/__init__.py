@@ -18,3 +18,4 @@ from .tab_bar import TabBar
 from .view_frame import FrameView
 from .view_frame import HLine
 from .view_frame import VLine
+from .widget import Widget

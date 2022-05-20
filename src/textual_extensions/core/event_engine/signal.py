@@ -11,33 +11,29 @@ class signal:
     
     code of conduct:
         signal naming convention:
-            - use snake case.
-            - use passive tense (e.g. 'clicked', 'pressed', 'released', etc.).
-    
-    warning:
-        for the limitation of current design, you must instantiate every signal
-        in class's __init__ method.
-    
-        for example:
+            -   use snake case.
+            -   use passive tense. (i.e. the name ends with 'ed', for example
+                'clicked', 'pressed', 'released', etc.)
+                notice:
+                    this is a MANDATORY format. for names which is not
+                    'ed'-ended, it won't be detected, then it may lead to
+                    unexpected behaviors.
+                    this is because we have implemented a magic method to
+                    accept only 'ed'-ended names. see also `../../widgets/
+                    widget.py : class Widget` for more information.
+            -   suggest using 'on_' as common prefix. for example 'on_clicked',
+                'on_pressed', 'on_released', etc.
+                
+    experimental:
+        currently (0.1.0) we support declaring signals in class-level. the
+        following code is allowed:
+            from textual_extensions import Widget
             class SomeWidget(Widget):
-                # wrong
-                pressed = signal()
-                
-                def __init__(self):
-                    # right
-                    self.clicked = signal()
-                    
-                async def on_clicked(self, event):
-                    self.clicked.emit(event)
-    
-            class AnotherWidget(Widget):
-                
-                def __init__(self, source_widget):
-                    # pass source widget instance as param.
-                    source_widget.clicked.connect(self.do_something)
-                    
-                def do_something(self, event):
-                    ...
+                on_pressed = signal()
+                ...
+        the only thing keeps in mind is that using `from textual_extensions
+        import Widget`, instead of `from textual.widget import Widget`.
+        you can check its source code to find how is it implemented.
     """
     _annotations: tuple
     _id: int  # FIXME
