@@ -126,7 +126,7 @@ class Input(Widget, Focusable):
             await self.on_submitted.emit(self.text)
             if not self._keep_focus_after_submit:
                 self._focused = False
-            is_changed = True
+                is_changed = True
         
         elif event.key == Keys.Escape:
             self._focused = False
@@ -149,6 +149,7 @@ class Input(Widget, Focusable):
         elif event.key == Keys.Right:
             is_changed = self._typed_chars.move('right')
         
+        # `is_changed` could be None, True, False for now.
         if is_changed is True:
             self.refresh()
     
