@@ -49,10 +49,38 @@ class Input(Widget, Focusable):
         self._placeholder = placeholder
         self._typed_chars = TypedChars(
             text,
-            blink=cursor_blink,
             bold=cursor_bold,
             shape=cursor_shape
         )
+        
+        if cursor_blink:
+            ''' the blinking style
+            
+            i use `(bool) Cursor.blink` and [`Input.set_interval`][1] to
+            control the blinking status in an infinite time-loop.
+            
+            the default value of `Cursor.blink` is True. True means showing a
+            solid cursor, False means (temporarily) disappeared.
+            
+            if caller says "there's no need to blink", `set_interval` won't be
+            enabled, that means `Cursor.blink`s value would stay in True.
+            
+            btw i don't use [tmux-schmooze][2]'s scheme, because the blink tag
+            rendered by rich looks very "laggy" (i think its interval is too
+            long).
+            
+            [1]: https://github.com/Textualize/textual/blob/4d94df81e44b27fff52f
+                 0e38f4f109212e9e8c8a/docs/examples/timers/clock.py
+            [2]: https://github.com/camgraff/tmux-schmooze/blob/master/tmux_
+                 schmooze/ui.py
+            '''
+            
+            def blinking():
+                cursor = self._typed_chars.get_cursor()
+                cursor.blink = not cursor.blink
+                self.refresh()
+            
+            self.set_interval(0.6, blinking)  # interval 0.5~0.7s
     
     def render(self):
         if self._focused:
@@ -149,8 +177,13 @@ class Input(Widget, Focusable):
         elif event.key == Keys.Right:
             is_changed = self._typed_chars.move('right')
         
-        # `is_changed` could be None, True, False for now.
+        # remind: `is_changed` now is None, True, or False at the time.
         if is_changed is True:
+            # tip: make sure current blink status is True, it feels more
+            # comfortable when user is staring at screen when he is typing or
+            # moving cursor.
+            cursor = self._typed_chars.get_cursor()
+            cursor.blink = True
             self.refresh()
     
     async def watch__focused(self, focus: bool):
@@ -210,6 +243,10 @@ class TypedChars:
     
     def __str__(self):
         return ''.join(self._typed_chars)
+    
+    def get_cursor(self) -> 'Cursor':
+        # use this method only for special purpose.
+        return self._cursor
     
     # @property
     # def length(self):
@@ -348,23 +385,20 @@ class TypedChars:
 
 class Cursor:
     """
-    references:
-        cursor blinking: https://github.com/camgraff/tmux-schmooze/blob/master
-            /tmux_schmooze/ui.py
-    
     FIXME:
         - if cursor shape is '▉', the blinking effect is invalid.
     """
+    blink: bool  # default True. True means solid cursor, False means
+    #   (temporarily) disappeared. this attr can be toggled by external caller.
+    #   see also `Input : (attr) __blinking`.
     index: int  # starts from 0. it indicates the left side of current char.
     shape: str
     _rich_shape: str
     
-    def __init__(self, shape='_', blink=True, bold=False):
+    def __init__(self, shape='_', bold=False):
         """
         args:
             shape: literal['_', '|', '▉']
-            blink: bool[True]
-                notice: the blinking effect is a little laggy (delay 100~200ms).
             bold: bool[False]
         """
         assert shape in ('_', '|', '▉')
@@ -383,11 +417,11 @@ class Cursor:
         #        `TypedChars.rich_text_with_cursor`. it might not be a good
         #         design.
         
+        self.blink = True
         self.index = 0
         self.shape = shape
         
-        self._rich_shape = '[{0} {1} {2}]{3}[/]'.format(
-            'blink' if blink else '',
+        self._rich_shape = '[{0} {1}]{2}[/]'.format(
             'bold' if bold else '',
             {
                 '_': 'u color(36)',  # blue underline
@@ -397,30 +431,27 @@ class Cursor:
             '|' if shape == '|' else '{char}'
             #   about '{char}': see `self.get_rich_cursor`.
         )
-        # fix style markup format.
-        from re import sub
-        self._rich_shape = sub(r'^\[ +', '[', self._rich_shape)
-        self._rich_shape = sub(r' +', ' ', self._rich_shape)
-        #   before: '[ bold color(36)]|[/]'
-        #       after:  '[bold color(36)]|[/]'
-        #                ^ remove space after left bracket.
-        #   before: '[blink  u color(36)]{}[/]'
-        #       after:  '[blink u color(36)]{}[/]'
-        #                      ^ merge duplicated spaces.
+        # (chore) polish style markup format.
+        if not bold:
+            self._rich_shape = self._rich_shape.replace('[ ', '[', 1)
+        #   before: '[ u color(36)]|[/]'
+        #   after : '[u color(36)]|[/]'
+        #             ^ remove redundant space besides left bracket.
     
     def activate(self, x: int, text_length: int):
         self.index = min((x, text_length))
     
     def get_rich_cursor(self, char=' '):
-        if self.shape == '|':
-            return self._rich_shape
-        if char != ' ':
-            # temporarily cancel blink for visual-friendly.
-            return self._rich_shape.format(char=char).replace(
-                '[blink ', '[', 1
-            )
+        if self.blink:
+            if self.shape == '|':
+                return self._rich_shape
+            else:
+                return self._rich_shape.format(char=char)
         else:
-            return self._rich_shape.format(char=char)
+            if self.shape == '|':
+                return '[dim]|[/]'
+            else:
+                return char
     
     # movements
     #   return: bool -- True means cursor index changed. False not.
