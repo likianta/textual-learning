@@ -1,5 +1,6 @@
 from string import printable
 
+from rich.panel import Panel
 from textual import events
 from textual.keys import Keys
 from textual.reactive import Reactive
@@ -28,15 +29,8 @@ class Input(Widget, Focusable):
             self, text='', placeholder='', *,
             cursor_blink=True, cursor_bold=False, cursor_shape='_',
             focus_scope=None, keep_focus_after_submit=True, padding=1,
+            show_border=False,
     ):
-        """
-        args:
-            text: str
-            placeholder: str
-            cursor_bold: bool
-            cursor_shape: literal['_', '|', '▉']
-            padding: int
-        """
         Widget.__init__(self)
         Focusable.__init__(self, focus_scope)
         #   Focusable provides:
@@ -47,6 +41,7 @@ class Input(Widget, Focusable):
         self._keep_focus_after_submit = keep_focus_after_submit
         self._padding = padding
         self._placeholder = placeholder
+        self._show_border = show_border
         self._typed_chars = TypedChars(
             text,
             bold=cursor_bold,
@@ -111,24 +106,33 @@ class Input(Widget, Focusable):
                     len(self._typed_chars.text)
                 )
             else:  # show placeholder.
+                # FIXME: if placeholder contains rich markup, the spacing in
+                #   the tail will be truncated.
                 rich_text = self._fill_bg(
                     # a little darker on grey background.
                     '[#ABA7B9 on #444444]{}[/]'.format(self._placeholder),
                     len(self._placeholder)
                 )
         
-        return '[default on #444444]{0}{1}{0}[/]'.format(
-            ' ' * self._padding, rich_text
-        )
+        if self._show_border:
+            return Panel(
+                '[default on #444444]{0}{1}{0}[/]'.format(
+                    ' ' * self._padding, rich_text
+                ), border_style='blue'
+            )
+        else:
+            return '[default on #444444]{0}{1}{0}[/]'.format(
+                ' ' * self._padding, rich_text
+            )
     
     # -------------------------------------------------------------------------
     
     # == events ==
     
     async def on_click(self, event: events.Click):
-        # await self.gain_focus()
         await self.gain_focus()
-        self._typed_chars.activate(event.x - self._padding)
+        offset = 2 if self._show_border else 0
+        self._typed_chars.activate(max((event.x - self._padding - offset, 0)))
         self.refresh()
         event.prevent_default()
     
